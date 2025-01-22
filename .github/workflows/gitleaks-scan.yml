@@ -14,7 +14,8 @@ jobs:
         with:
           node-version: '18'
       - name: install dependencies
-      - run: npm install
+        run: npm install
+                
   gitleaks:
     name: Gitleaks Scan
     runs-on: ubuntu-latest
