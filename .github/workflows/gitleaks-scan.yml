@@ -13,12 +13,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-      - name: install dependencies
-        run: npm install
-      - name: Manually fix permissions for Husky
-        run: chmod -R 777 .husky
-      
-                
   gitleaks:
     name: Gitleaks Scan
     runs-on: ubuntu-latest
