@@ -1,0 +1,50 @@
+name: SonarQube Analysis and Docker Deployment
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build_and_analyze:
+    name: Build, Analyze, and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      
+
+      # - name: Install Sonar Scanner CLI
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y openjdk-11-jre
+      #     curl -L -o sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+      #     unzip sonar-scanner.zip -d $HOME/
+      #     export PATH="$HOME/sonar-scanner-4.8.0.2856-linux/bin:$PATH"
+
+      # - uses: SonarSource/sonarqube-scan-action@v4
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #     SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      # Install dependencies (if Node.js project)
+      - name: Install dependencies
+        run: npm install
+        
+      # Build the Docker image
+      - name: Build Docker Image
+        run: |
+          IMAGE_NAME="my-app"
+          IMAGE_TAG="latest"
+          docker build -t $IMAGE_NAME:$IMAGE_TAG .
+
+      # Run the Docker container
+      - name: Run Docker Container
+        run: |
+          IMAGE_NAME="my-app"
+          IMAGE_TAG="latest"
+          CONTAINER_NAME="my-app-container"
+          docker run -d --name $CONTAINER_NAME -p 8080:8080 $IMAGE_NAME:$IMAGE_TAG

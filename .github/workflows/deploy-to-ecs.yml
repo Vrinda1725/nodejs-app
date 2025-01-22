@@ -1,0 +1,78 @@
+name: Deploy to ECS
+
+on:
+  push:
+    branches:
+      - master
+jobs:
+  deploy:
+    name: Deploy to Amazon ECS
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      # Log in to Amazon ECR
+      - name: Log in to Amazon ECR
+        run: |
+          aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 970547372033.dkr.ecr.eu-west-2.amazonaws.com
+
+      # Build the Docker image
+      - name: Build Docker Image
+        run: |
+          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}"
+          docker build -t $IMAGE_URI .
+          docker tag $IMAGE_URI:latest $IMAGE_URI:${{ github.sha }}
+
+      # Push the Docker image to ECR
+      - name: Push Docker Image to ECR
+        run: |
+          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}"
+          docker push $IMAGE_URI:latest
+          docker push $IMAGE_URI:${{ github.sha }}
+
+      # # Update ECS Service to Force Deployment
+      # - name: Update ECS Service
+      #   run: |
+      #     aws ecs update-service \
+      #       --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+      #       --service ${{ secrets.ECS_SERVICE_NAME }} \
+      #       --force-new-deployment \
+      #       --region ${{ secrets.AWS_REGION }} 
+      - name: Update ECS Task Definition JSON with Secrets
+        run: |
+          sed -i "s|\${ECS_TASK_FAMILY}|${{ secrets.ECS_TASK_FAMILY }}|g" .github/task-definition.json
+          sed -i "s|\${ECS_EXECUTION_ROLE_ARN}|${{ secrets.ECS_EXECUTION_ROLE_ARN }}|g" .github/task-definition.json
+          sed -i "s|\${AWS_ACCOUNT_ID}|${{ secrets.AWS_ACCOUNT_ID }}|g" .github/task-definition.json
+          sed -i "s|\${AWS_REGION}|${{ secrets.AWS_REGION }}|g" .github/task-definition.json
+          sed -i "s|\${ECR_REPOSITORY_NAME}|${{ secrets.ECR_REPOSITORY_NAME }}|g" .github/task-definition.json
+
+      - name: Register ECS Task Definition
+        id: register-task
+        run: |
+         NEW_TASK_DEFINITION=$(aws ecs register-task-definition --cli-input-json file://.github/task-definition.json --region ${{ secrets.AWS_REGION }})
+         echo "Task definition registered: $NEW_TASK_DEFINITION"
+         echo "::set-output name=task-definition-arn::$(echo $NEW_TASK_DEFINITION | jq -r '.taskDefinition.taskDefinitionArn')"
+
+      # Update the ECS Service
+      - name: Update ECS Service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+            --service ${{ secrets.ECS_SERVICE_NAME }} \
+            --task-definition ${{ steps.register-task.outputs.task-definition-arn }} \
+            --region ${{ secrets.AWS_REGION }}
+            
