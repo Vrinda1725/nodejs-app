@@ -12,7 +12,9 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'
+      - name: install dependencies
+      - run: npm install
   gitleaks:
     name: Gitleaks Scan
     runs-on: ubuntu-latest
