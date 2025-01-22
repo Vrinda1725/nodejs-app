@@ -15,8 +15,9 @@ jobs:
           node-version: '18'
       - name: install dependencies
         run: npm install
-      - name: Ensure Husky hooks have executable permissions
-        run: chmod +x .husky/*
+      - name: Manually fix permissions for Husky
+        run: chmod -R 777 .husky
+      
                 
   gitleaks:
     name: Gitleaks Scan
