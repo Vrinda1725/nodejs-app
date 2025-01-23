@@ -1,0 +1,4 @@
+[[rules]]
+id = "custom-rule"
+description = "Custom API Key Rule"
+regex = '''(?i)(API_KEY|SECRET_KEY|TOKEN)[^a-zA-Z0-9]*([a-f0-9]{32})'''
