@@ -2,12 +2,20 @@ FROM node:18
 
 WORKDIR /usr/src/app
 
-COPY package*.json ./
+# Use a vulnerable package version to simulate vulnerability
+COPY package.json ./   # Ensure the package.json points to a vulnerable version
 
-RUN npm install 
+# Insecure package installation
+RUN npm install --unsafe-perm
 
-COPY . .
-
+# Expose a port without proper security
 EXPOSE 8080
 
-CMD ["node", "index.js"]
+# Intentionally use a potentially vulnerable base image or unnecessary tools
+RUN apt-get update && apt-get install -y curl
+
+# Leave unnecessary files in the image to simulate a misconfiguration
+COPY . .
+
+# Expose a shell or another service without restrictions
+CMD ["bash"]
