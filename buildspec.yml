@@ -27,3 +27,7 @@ artifacts:
   files:
     - '**/*'
     - imagedefinitions.json
+
+
+
+
